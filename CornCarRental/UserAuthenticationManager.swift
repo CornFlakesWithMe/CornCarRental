@@ -4,13 +4,13 @@ import Security
 class UserAuthenticationManager {
     static let shared = UserAuthenticationManager()
     
-    private var currentUser: AuthUser?
+    private var currentUser: User?
     private let keychain = KeychainWrapper.standard
     
     private init() {}
     
     // MARK: - User Registration
-    func register(email: String, password: String, securityQuestions: [SecurityQuestion]) async throws -> AuthUser {
+    func register(email: String, password: String, securityQuestions: [SecurityQuestion], name: String, phoneNumber: String) async throws -> User {
         // Validate email format
         guard isValidEmail(email) else {
             throw AuthenticationError.invalidEmail
@@ -30,9 +30,10 @@ class UserAuthenticationManager {
         let hashedPassword = try hashPassword(password)
         
         // Create new user
-        let user = AuthUser(
-            id: UUID().uuidString,
+        let user = User(
+            name: name,
             email: email,
+            phoneNumber: phoneNumber,
             passwordHash: hashedPassword,
             securityQuestions: securityQuestions
         )
@@ -44,7 +45,7 @@ class UserAuthenticationManager {
     }
     
     // MARK: - User Login
-    func login(email: String, password: String) async throws -> AuthUser {
+    func login(email: String, password: String) async throws -> User {
         guard let user = try await getUser(email: email) else {
             throw AuthenticationError.userNotFound
         }
@@ -72,9 +73,8 @@ class UserAuthenticationManager {
         
         // Update user's password
         let hashedPassword = try hashPassword(newPassword)
-        var updatedUser = user
-        updatedUser.passwordHash = hashedPassword
-        try await saveUser(updatedUser)
+        user.passwordHash = hashedPassword
+        try await saveUser(user)
         
         return newPassword
     }
@@ -102,36 +102,22 @@ class UserAuthenticationManager {
         return try await getUser(email: email) != nil
     }
     
-    private func getUser(email: String) async throws -> AuthUser? {
+    private func getUser(email: String) async throws -> User? {
         // In a real app, this would fetch from a database
         return nil
     }
     
-    private func saveUser(_ user: AuthUser) async throws {
+    private func saveUser(_ user: User) async throws {
         // In a real app, this would save to a database
     }
 }
 
-// MARK: - Models
-struct AuthUser {
-    let id: String
-    let email: String
-    var passwordHash: String
-    let securityQuestions: [SecurityQuestion]
-}
-
-struct SecurityQuestion {
-    let id: String
-    let question: String
-    let answer: String
-}
-
 // MARK: - Chain of Responsibility
 class SecurityQuestionHandler {
-    private let user: AuthUser
+    private let user: User
     private var nextHandler: SecurityQuestionHandler?
     
-    init(user: AuthUser) {
+    init(user: User) {
         self.user = user
     }
     
@@ -141,7 +127,11 @@ class SecurityQuestionHandler {
     
     func handle(answers: [String: String]) async throws -> String {
         // Verify the answer for the current question
-        for question in user.securityQuestions {
+        guard let questions = user.securityQuestions else {
+            throw AuthenticationError.invalidSecurityAnswer
+        }
+        
+        for question in questions {
             guard let answer = answers[question.id],
                   answer.lowercased() == question.answer.lowercased() else {
                 throw AuthenticationError.invalidSecurityAnswer

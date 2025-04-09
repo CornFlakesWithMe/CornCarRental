@@ -9,17 +9,27 @@ class User {
     let profileImage: URL?
     var averageRating: Double = 0.0
     var numberOfReviews: Int = 0
+    var passwordHash: String?
+    var securityQuestions: [SecurityQuestion]?
     
     // User might be both a car owner and a renter
     private(set) var carListings: [CarListing] = []
     private(set) var bookings: [Booking] = []
     
-    init(id: UUID = UUID(), name: String, email: String, phoneNumber: String, profileImage: URL? = nil) {
+    init(id: UUID = UUID(), 
+         name: String, 
+         email: String, 
+         phoneNumber: String, 
+         profileImage: URL? = nil,
+         passwordHash: String? = nil,
+         securityQuestions: [SecurityQuestion]? = nil) {
         self.id = id
         self.name = name
         self.email = email
         self.phoneNumber = phoneNumber
         self.profileImage = profileImage
+        self.passwordHash = passwordHash
+        self.securityQuestions = securityQuestions
     }
     
     // Add a new car listing
@@ -45,5 +55,18 @@ class User {
     // Get all bookings for this user
     func getBookings() -> [Booking] {
         return bookings
+    }
+    
+    // Convert from AuthUser
+    static func fromAuthUser(_ authUser: AuthUser, name: String, phoneNumber: String, profileImage: URL? = nil) -> User {
+        return User(
+            id: UUID(uuidString: authUser.id) ?? UUID(),
+            name: name,
+            email: authUser.email,
+            phoneNumber: phoneNumber,
+            profileImage: profileImage,
+            passwordHash: authUser.passwordHash,
+            securityQuestions: authUser.securityQuestions
+        )
     }
 }

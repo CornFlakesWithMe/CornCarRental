@@ -1,7 +1,9 @@
 import SwiftUI
 
 struct RegistrationView: View {
+    @State private var name = ""
     @State private var email = ""
+    @State private var phoneNumber = ""
     @State private var password = ""
     @State private var confirmPassword = ""
     @State private var securityQuestions: [SecurityQuestion] = []
@@ -26,6 +28,15 @@ struct RegistrationView: View {
                     .font(.largeTitle)
                     .fontWeight(.bold)
                 
+                // Name Field
+                VStack(alignment: .leading) {
+                    Text("Full Name")
+                        .font(.headline)
+                    TextField("Enter your full name", text: $name)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .autocapitalization(.words)
+                }
+                
                 // Email Field
                 VStack(alignment: .leading) {
                     Text("Email")
@@ -34,6 +45,15 @@ struct RegistrationView: View {
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .autocapitalization(.none)
                         .keyboardType(.emailAddress)
+                }
+                
+                // Phone Number Field
+                VStack(alignment: .leading) {
+                    Text("Phone Number")
+                        .font(.headline)
+                    TextField("Enter your phone number", text: $phoneNumber)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .keyboardType(.phonePad)
                 }
                 
                 // Password Fields
@@ -103,7 +123,9 @@ struct RegistrationView: View {
     }
     
     private var isFormValid: Bool {
+        !name.isEmpty &&
         !email.isEmpty &&
+        !phoneNumber.isEmpty &&
         !password.isEmpty &&
         password == confirmPassword &&
         selectedQuestions.count == 3 &&
@@ -128,7 +150,9 @@ struct RegistrationView: View {
                 let _ = try await UserAuthenticationManager.shared.register(
                     email: email,
                     password: password,
-                    securityQuestions: securityQuestions
+                    securityQuestions: securityQuestions,
+                    name: name,
+                    phoneNumber: phoneNumber
                 )
                 
                 DispatchQueue.main.async {
