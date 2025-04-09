@@ -1,5 +1,12 @@
 import Foundation
 
+// Security Question model
+struct SecurityQuestion {
+    let id: String
+    let question: String
+    let answer: String
+}
+
 // User model for car owners and renters
 class User {
     let id: UUID
@@ -55,18 +62,5 @@ class User {
     // Get all bookings for this user
     func getBookings() -> [Booking] {
         return bookings
-    }
-    
-    // Convert from AuthUser
-    static func fromAuthUser(_ authUser: AuthUser, name: String, phoneNumber: String, profileImage: URL? = nil) -> User {
-        return User(
-            id: UUID(uuidString: authUser.id) ?? UUID(),
-            name: name,
-            email: authUser.email,
-            phoneNumber: phoneNumber,
-            profileImage: profileImage,
-            passwordHash: authUser.passwordHash,
-            securityQuestions: authUser.securityQuestions
-        )
     }
 }
