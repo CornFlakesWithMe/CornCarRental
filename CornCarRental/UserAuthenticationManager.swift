@@ -4,13 +4,13 @@ import Security
 class UserAuthenticationManager {
     static let shared = UserAuthenticationManager()
     
-    private var currentUser: User?
+    private var currentUser: AuthUser?
     private let keychain = KeychainWrapper.standard
     
     private init() {}
     
     // MARK: - User Registration
-    func register(email: String, password: String, securityQuestions: [SecurityQuestion]) async throws -> User {
+    func register(email: String, password: String, securityQuestions: [SecurityQuestion]) async throws -> AuthUser {
         // Validate email format
         guard isValidEmail(email) else {
             throw AuthenticationError.invalidEmail
@@ -30,7 +30,7 @@ class UserAuthenticationManager {
         let hashedPassword = try hashPassword(password)
         
         // Create new user
-        let user = User(
+        let user = AuthUser(
             id: UUID().uuidString,
             email: email,
             passwordHash: hashedPassword,
@@ -44,7 +44,7 @@ class UserAuthenticationManager {
     }
     
     // MARK: - User Login
-    func login(email: String, password: String) async throws -> User {
+    func login(email: String, password: String) async throws -> AuthUser {
         guard let user = try await getUser(email: email) else {
             throw AuthenticationError.userNotFound
         }
@@ -102,18 +102,18 @@ class UserAuthenticationManager {
         return try await getUser(email: email) != nil
     }
     
-    private func getUser(email: String) async throws -> User? {
+    private func getUser(email: String) async throws -> AuthUser? {
         // In a real app, this would fetch from a database
         return nil
     }
     
-    private func saveUser(_ user: User) async throws {
+    private func saveUser(_ user: AuthUser) async throws {
         // In a real app, this would save to a database
     }
 }
 
 // MARK: - Models
-struct User {
+struct AuthUser {
     let id: String
     let email: String
     var passwordHash: String
@@ -128,10 +128,10 @@ struct SecurityQuestion {
 
 // MARK: - Chain of Responsibility
 class SecurityQuestionHandler {
-    private let user: User
+    private let user: AuthUser
     private var nextHandler: SecurityQuestionHandler?
     
-    init(user: User) {
+    init(user: AuthUser) {
         self.user = user
     }
     
