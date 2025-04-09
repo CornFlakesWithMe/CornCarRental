@@ -4,6 +4,13 @@ struct MyListingsView: View {
     @State private var listings: [CarListing] = []
     @State private var showingAddCarSheet = false
     
+    // Mock user for the current user (in a real app, this would come from authentication)
+    private let currentUser = User(
+        name: "John Smith",
+        email: "john@example.com",
+        phoneNumber: "555-123-4567"
+    )
+    
     var body: some View {
         NavigationView {
             VStack {
@@ -42,8 +49,14 @@ struct MyListingsView: View {
                 Image(systemName: "plus")
             })
             .sheet(isPresented: $showingAddCarSheet) {
-                AddCarView(onSave: { newListing in
+                AddCarView(currentUser: currentUser, onSave: { newListing in
+                    // Add the new listing to our array
                     listings.append(newListing)
+                    
+                    // In a real app, you would also save this to a database or API
+                    // For now, we'll just add it to our CarListingManager
+                    let _ = CarListingManager.shared.addCarListing(newListing)
+                    
                     showingAddCarSheet = false
                 })
             }
@@ -51,17 +64,108 @@ struct MyListingsView: View {
     }
     
     private func deleteListings(at offsets: IndexSet) {
+        // Remove from local array
+        offsets.forEach { index in
+            let listing = listings[index]
+            // Remove from CarListingManager too
+            CarListingManager.shared.removeCarListing(by: listing.car.id)
+        }
+        
         listings.remove(atOffsets: offsets)
-        // In a real app, you would also update your data source
     }
 }
 
 struct ListingDetailView: View {
     let listing: CarListing
+    @State private var isEditingListing = false
     
     var body: some View {
-        Text("Listing Detail View")
-            .navigationTitle("\(listing.car.make) \(listing.car.model)")
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                // Car image placeholder
+                ZStack {
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.2))
+                        .aspectRatio(16/9, contentMode: .fit)
+                    
+                    Image(systemName: "car.fill")
+                        .font(.system(size: 60))
+                        .foregroundColor(.gray)
+                }
+                .cornerRadius(12)
+                .padding(.horizontal)
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("\(listing.car.year) \(listing.car.make) \(listing.car.model)")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    
+                    HStack {
+                        Text("$\(Int(listing.rentalPrices.basePrice))/day")
+                            .font(.headline)
+                            .foregroundColor(.green)
+                        
+                        Spacer()
+                        
+                        Text("Mileage: \(Int(listing.car.mileage)) mi")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                    }
+                    
+                    Divider()
+                    
+                    Text("Description")
+                        .font(.headline)
+                    
+                    Text(listing.description)
+                        .font(.body)
+                        .padding(.top, 2)
+                    
+                    Divider()
+                    
+                    Text("Rules")
+                        .font(.headline)
+                    
+                    ForEach(listing.rules, id: \.self) { rule in
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.blue)
+                            Text(rule)
+                                .font(.subheadline)
+                        }
+                        .padding(.top, 2)
+                    }
+                    
+                    Divider()
+                    
+                    Text("Pickup Location")
+                        .font(.headline)
+                    
+                    Text(listing.pickupLocation.formattedAddress)
+                        .font(.subheadline)
+                }
+                .padding(.horizontal)
+                
+                Button(action: {
+                    isEditingListing = true
+                }) {
+                    Text("Edit Listing")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .cornerRadius(10)
+                        .padding(.horizontal)
+                }
+                .padding(.vertical)
+            }
+        }
+        .navigationTitle("Listing Details")
+        .sheet(isPresented: $isEditingListing) {
+            Text("Edit Listing View")
+            // In a real app, you would create an edit form here
+        }
     }
 }
 
@@ -96,56 +200,5 @@ struct MyListingItemView: View {
             Spacer()
         }
         .padding(.vertical, 4)
-    }
-}
-
-// Stub for adding a new car
-struct AddCarView: View {
-    let onSave: (CarListing) -> Void
-    @Environment(\.presentationMode) var presentationMode
-    
-    // Fields to create a new car
-    @State private var make = ""
-    @State private var model = ""
-    @State private var year = 2023
-    @State private var basePrice = 75.0
-    
-    var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Car Details")) {
-                    TextField("Make", text: $make)
-                    TextField("Model", text: $model)
-                    Picker("Year", selection: $year) {
-                        ForEach(2010...2025, id: \.self) { year in
-                            Text("\(year)").tag(year)
-                        }
-                    }
-                }
-                
-                Section(header: Text("Pricing")) {
-                    HStack {
-                        Text("Base Price per Day")
-                        Spacer()
-                        TextField("Price", value: $basePrice, formatter: NumberFormatter())
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                        Text("$").font(.headline)
-                    }
-                }
-                
-                Button("Save") {
-                    // In a real app, you would create a real CarListing here
-                    // For now, just dismiss
-                    presentationMode.wrappedValue.dismiss()
-                }
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding()
-            }
-            .navigationTitle("Add Car")
-            .navigationBarItems(leading: Button("Cancel") {
-                presentationMode.wrappedValue.dismiss()
-            })
-        }
     }
 }
